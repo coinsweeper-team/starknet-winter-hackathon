@@ -2,6 +2,16 @@ use starknet::{ContractAddress};
 
 // COINSWEEPER //
 
+#[derive(Copy, Drop, Serde, Debug)]
+#[dojo::model]
+pub struct BestRecords {
+    #[key]
+    player: ContractAddress,
+    beginner_best_time: u64,
+    intermediate_best_time: u64,
+    expert_best_time: u64,
+}
+
 #[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]
 pub enum GameResult {
     Ongoing,
@@ -79,8 +89,6 @@ enum GameDifficulty {
     Intermediate: (),
     Expert: (),
 }
-
-// COINSWEEPER //
 
 
 #[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]

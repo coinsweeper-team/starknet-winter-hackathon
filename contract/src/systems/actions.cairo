@@ -29,7 +29,7 @@ pub mod actions {
 
     use super::{IActions, Direction, GameDifficulty, GameResult};
     use starknet::{ContractAddress, get_caller_address};
-    use dojo_starter::models::{Vec2, Cell, Boards, BoardStatus, Currency, Achievements};
+    use dojo_starter::models::{Vec2, Cell, Boards, BoardStatus, Currency, Achievements, BestRecords};
 
     use dojo::model::{ModelStorage, ModelValueStorage};
     use dojo::event::EventStorage;
@@ -69,6 +69,22 @@ pub mod actions {
                     world.write_model(@boards);
                     self.addCurrency(currency_amount);
                     self.checkForAchievement();
+
+                    let mut best_records: BestRecords = world.read_model(player);
+                    if board.difficulty == 1 {
+                        if best_records.beginner_best_time == 0 || time_elapsed < best_records.beginner_best_time {
+                            best_records.beginner_best_time = time_elapsed;
+                        }
+                    } else if board.difficulty == 2 {
+                        if best_records.intermediate_best_time == 0 || time_elapsed < best_records.intermediate_best_time {
+                            best_records.intermediate_best_time = time_elapsed;
+                        }
+                    } else if board.difficulty == 3 {
+                        if best_records.expert_best_time == 0 || time_elapsed < best_records.expert_best_time {
+                            best_records.expert_best_time = time_elapsed;
+                        }
+                    }
+                    world.write_model(@best_records);
                 },
                 GameResult::Lost => {},
                 GameResult::Ongoing => {},
