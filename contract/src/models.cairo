@@ -13,35 +13,56 @@ pub struct Moves {
 
 // COINSWEEPER //
 
+#[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]
+pub enum GameResult {
+    Ongoing,
+    Lost,
+    Won,
+}
+
 #[derive(Copy, Drop, Serde, Debug)]
 #[dojo::model]
-pub struct Cells {
+pub struct Achievements {
+    #[key]
+    pub player: ContractAddress,
+    pub won_10_games: bool,
+    pub won_100_games: bool,
+    pub won_first_game: bool,
+    pub first_in_leaderboard: bool,
+}
+
+#[derive(Copy, Drop, Serde, Debug)]
+#[dojo::model]
+pub struct Currency {
+    #[key]
+    pub player: ContractAddress,
+    pub amount: u32,
+}
+
+#[derive(Copy, Drop, Serde, Debug)]
+#[dojo::model]
+pub struct Cell {
     #[key]
     pub player: ContractAddress,
      #[key]
     board: u32,
     #[key]
-    cell_id: u32,
-    location_x: u8,
-    location_y: u8,
+    cell_id: u16,
+    // location_x: u8,
+    // location_y: u8,
     is_bomb: bool,
-    is_revealed: bool,
-    is_clicked: bool,
-    neighbor_bombs: u8,
+    amount_currency: u8,
 }
 
 #[derive(Copy, Drop, Serde, Debug)]
 #[dojo::model]
-pub struct Board {
+pub struct Boards {
     #[key]
     player: ContractAddress,
-    #[key]
-    board_id: u32,
-    width: u8,
-    height: u8,
-    num_mines: u8,
-    is_over: bool,
-    time_elapsed: u64,
+    // boards_ids: Array<u32>,
+    last_board_id: u32,
+    played_total: u32,
+    won_total: u32,
 }
 
 
@@ -53,10 +74,14 @@ pub struct BoardStatus {
     #[key]
     board_id: u32,
     difficulty: u8,
-    num_mines: u8,
-    num_closed: u8,
+    width: u8,
+    height: u8,
+    num_mines: u16,
+    num_closed: u16,
     is_over: bool,
     time_elapsed: u64,
+    // total_currency_available: u32,
+    result: GameResult,
 }
 
 #[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]
@@ -100,6 +125,26 @@ pub struct Vec2 {
     pub y: u32
 }
 
+
+impl GameDifficultyIntoFelt252 of Into<GameDifficulty, u8> {
+    fn into(self: GameDifficulty) -> u8 {
+        match self {
+            GameDifficulty::Beginner => 1,
+            GameDifficulty::Intermediate => 2,
+            GameDifficulty::Expert => 3,
+        }
+    }
+}
+
+impl GameResultIntoFelt252 of Into<GameResult, felt252> {
+    fn into(self: GameResult) -> felt252 {
+        match self {
+            GameResult::Ongoing => 0,
+            GameResult::Lost => 1,
+            GameResult::Won => 2,
+        }
+    }
+}
 
 impl DirectionIntoFelt252 of Into<Direction, felt252> {
     fn into(self: Direction) -> felt252 {

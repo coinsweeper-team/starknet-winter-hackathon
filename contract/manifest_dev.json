@@ -1252,8 +1252,8 @@
   },
   "contracts": [
     {
-      "address": "0x2115aaa49adb5178478e04d8707ab7fe361aa9e140866b7365c3bb1f1d93334",
-      "class_hash": "0x2a51b77954d9b9b3ca4f081e54f8788af664983a2fee39a2ea6f0360b6289af",
+      "address": "0x34cbba9e88f0d2d4c3ede6caf010213ffa7d905847a23fcb8e6f282aec9f9ee",
+      "class_hash": "0x13ef87781e4656c971a6aa8883b101d84f6f1aceb6dceb035e35034365d3c81",
       "abi": [
         {
           "type": "impl",
@@ -1468,6 +1468,30 @@
                 }
               ],
               "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "randomMineOrder",
+              "inputs": [
+                {
+                  "name": "num_cells",
+                  "type": "core::integer::u32"
+                },
+                {
+                  "name": "num_mines",
+                  "type": "core::integer::u32"
+                },
+                {
+                  "name": "board_id",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [
+                {
+                  "type": "core::array::Array::<core::integer::u8>"
+                }
+              ],
+              "state_mutability": "external"
             }
           ]
         },
@@ -1595,6 +1619,7 @@
         "setup_board",
         "reveal_cell",
         "get_board_status",
+        "randomMineOrder",
         "upgrade"
       ]
     }
@@ -1617,6 +1642,12 @@
       "class_hash": "0x6668ca31d7b181210157cf2485e07ec468eb99d5d39941ae3e4dc0b8ec981b3",
       "tag": "dojo_starter-Cells",
       "selector": "0x32b40faf1c1e517e09647626797fa7259c13b8e2dbb622d135aefb671fd0f00"
+    },
+    {
+      "members": [],
+      "class_hash": "0x200e088b68da5337c7ff2a40d56a89f6ad4665f5ad86e423868f4d7895887ac",
+      "tag": "dojo_starter-Currency",
+      "selector": "0x1d76e6b17e75f65c55b312847a2303efa35f82301eab308c118464074ec3ebb"
     },
     {
       "members": [],
