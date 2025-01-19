@@ -1,4 +1,4 @@
-use dojo_starter::models::{Direction, Position, GameDifficulty, GameResult, Cell, Boards, BoardStatus, Achievements};
+use dojo_starter::models::{Direction, GameDifficulty, GameResult, Cell, Boards, BoardStatus, Achievements};
 use origami_random::dice::{Dice, DiceTrait};
 // use cartridge_vrf::IVrfProviderDispatcher;
 // use cartridge_vrf::IVrfProviderDispatcherTrait;
@@ -7,8 +7,8 @@ use origami_random::dice::{Dice, DiceTrait};
 // define the interface
 #[starknet::interface]
 trait IActions<T> {
-    fn spawn(ref self: T);
-    fn move(ref self: T, direction: Direction);
+    // fn spawn(ref self: T);
+    // fn move(ref self: T, direction: Direction);
     fn setup_board_status(ref self: T, difficulty: GameDifficulty, board_id: u32) -> u32;
     // fn reveal_cell(ref self: T, board_id: u32, cell_id: u32);
     // fn get_board_status(ref self: T, board_id: u32) -> BoardStatus;
@@ -18,7 +18,8 @@ trait IActions<T> {
     fn setup_cells(ref self: T, board_id: u32) -> u32;
     // fn randomCurrencyAmount(ref self: T, seed_diff: u32) -> DiceTrait;
     fn setup_game(ref self: T, difficulty: GameDifficulty) -> u32;
-
+    fn gameEnd(ref self: T, board_id: u32, result: GameResult, time_elapsed: u64, currency_amount: u32);
+    fn checkForAchievement(ref self: T);
 }
 
 // dojo decorator
@@ -26,9 +27,9 @@ trait IActions<T> {
 pub mod actions {
     // const VRF_PROVIDER_ADDRESS: starknet::ContractAddress = starknet::contract_address_const::<0x123>();
 
-    use super::{IActions, Direction, Position, GameDifficulty, GameResult,  next_position};
+    use super::{IActions, Direction, GameDifficulty, GameResult};
     use starknet::{ContractAddress, get_caller_address};
-    use dojo_starter::models::{Vec2, Moves, DirectionsAvailable, Cell, Boards, BoardStatus, Currency};
+    use dojo_starter::models::{Vec2, Cell, Boards, BoardStatus, Currency, Achievements};
 
     use dojo::model::{ModelStorage, ModelValueStorage};
     use dojo::event::EventStorage;
@@ -51,8 +52,47 @@ pub mod actions {
     #[abi(embed_v0)]
     impl ActionsImpl of IActions<ContractState> {
 
-        
+        fn gameEnd(ref self: ContractState, board_id: u32, result: GameResult, time_elapsed: u64, currency_amount: u32) {
+            let mut world = self.world_default();
+            let player = get_caller_address();
+            let mut board: BoardStatus = world.read_model((player, board_id));
+            board.is_over = true;
+            board.result = result.into();
+            board.time_elapsed = time_elapsed;
+            board.num_closed = 0;
+            world.write_model(@board);
 
+            match result {
+                GameResult::Won => {
+                    let mut boards: Boards = world.read_model(player);
+                    boards.won_total += 1;
+                    world.write_model(@boards);
+                    self.addCurrency(currency_amount);
+                    self.checkForAchievement();
+                },
+                GameResult::Lost => {},
+                GameResult::Ongoing => {},
+            }
+        }
+
+        // inner function - Do not call from Frontend
+        fn checkForAchievement(ref self: ContractState) {
+            let mut world = self.world_default();
+            let player = get_caller_address();
+            let mut achievements: Achievements = world.read_model(player);
+            let mut boards: Boards = world.read_model(player);
+
+            if boards.won_total == 100 && !achievements.won_100_games {
+                achievements.won_100_games = true;
+            } else if boards.won_total == 10 && !achievements.won_10_games {
+                achievements.won_10_games = true;
+            } else if boards.won_total == 1 && !achievements.won_first_game {
+                achievements.won_first_game = true;
+            }
+            world.write_model(@achievements);
+        }
+
+        // inner function - Do not call from Frontend
         fn spendCurrency(ref self: ContractState, amount: u32) {
             let mut world = self.world_default();
             let player = get_caller_address();
@@ -61,6 +101,7 @@ pub mod actions {
             world.write_model(@currency);
         }
 
+        // inner function - Do not call from Frontend
         fn addCurrency(ref self: ContractState, amount: u32) {
             let mut world = self.world_default();
             let player = get_caller_address();
@@ -82,6 +123,7 @@ pub mod actions {
         //     return dice;
         // }
 
+        // inner function - Do not call from Frontend
         fn randomMineOrder(ref self: ContractState, num_cells: u16, num_mines: u16) -> Array<u16> {
             let player = get_caller_address();
             // let vrf_provider = IVrfProviderDispatcher { contract_address: starknet::contract_address_const::<0x123>() };
@@ -125,6 +167,7 @@ pub mod actions {
             return board_id;
         }
 
+        // inner function - Do not call from Frontend
         fn setup_board_status(ref self: ContractState, difficulty: GameDifficulty, board_id: u32) -> u32 {
             let mut world = self.world_default();
             let player = get_caller_address();
@@ -156,6 +199,7 @@ pub mod actions {
             return board_id;
         }
 
+        // inner function - Do not call from Frontend
         fn setup_cells(ref self: ContractState, board_id: u32) -> u32 {
             let mut world = self.world_default();
             let board: BoardStatus = world.read_model((get_caller_address(), board_id));
@@ -229,144 +273,6 @@ pub mod actions {
             
             return board_id;
         }
-
-        // fn reveal_cell(ref self: ContractState, board_id: u32, cell_id: u32) {
-        //     let mut world = self.world_default();
-        //     let player = get_caller_address();
-            
-        //     let cell: Cells = world.read_model((player, board_id, cell_id));
-        //     let board: Board = world.read_model((player, board_id));
-            
-        //     assert(!board.is_over, 'Game is already over');
-        //     assert(!cell.is_revealed, 'Cell already revealed');
-            
-        //     let updated_cell = Cells {
-        //         player: cell.player,
-        //         board: cell.board,
-        //         cell_id: cell.cell_id,
-        //         location_x: cell.location_x,
-        //         location_y: cell.location_y,
-        //         is_bomb: cell.is_bomb,
-        //         is_revealed: true,
-        //         is_clicked: true,
-        //         neighbor_bombs: cell.neighbor_bombs,
-        //     };
-            
-        //     if cell.is_bomb {
-        //         let updated_board = Board {
-        //             player: board.player,
-        //             board_id: board.board_id,
-        //             width: board.width,
-        //             height: board.height,
-        //             num_mines: board.num_mines,
-        //             is_over: true,
-        //             time_elapsed: board.time_elapsed,
-        //         };
-        //         world.write_model(@updated_board);
-        //     }
-            
-        //     world.write_model(@updated_cell);
-        // }
-
-        // fn get_board_status(ref self: ContractState, board_id: u32) -> BoardStatus {
-        //     let mut world = self.world_default();
-        //     let player = get_caller_address();
-            
-        //     let board: BoardStatus = world.read_model((player, board_id));
-            
-        //     let mut num_closed = 0_u8;
-        //     let total_cells = (board.width * board.height).into();
-        //     let mut i: u32 = 0;
-            
-        //     loop {
-        //         if i >= total_cells {
-        //             break;
-        //         }
-                
-        //         let cell: Cell = world.read_model((player, board_id, i));
-        //         if !cell.is_revealed {
-        //             num_closed += 1;
-        //         }
-                
-        //         i += 1;
-        //     };
-            
-        //     BoardStatus {
-        //         player,
-        //         board_id,
-        //         difficulty: 1_u8,
-        //         num_mines: board.num_mines,
-        //         num_closed,
-        //         is_over: board.is_over,
-        //         time_elapsed: board.time_elapsed,
-        //     }
-        // }
-
-
-        fn spawn(ref self: ContractState) {
-            // Get the default world.
-            let mut world = self.world_default();
-
-            // Get the address of the current caller, possibly the player's address.
-            let player = get_caller_address();
-            // Retrieve the player's current position from the world.
-            let position: Position = world.read_model(player);
-
-            // Update the world state with the new data.
-
-            // 1. Move the player's position 10 units in both the x and y direction.
-            let new_position = Position {
-                player, vec: Vec2 { x: position.vec.x + 10, y: position.vec.y + 10 }
-            };
-
-            // Write the new position to the world.
-            world.write_model(@new_position);
-
-            // 2. Set the player's remaining moves to 100.
-            let moves = Moves {
-                player, remaining: 100, last_direction: Option::None, can_move: true
-            };
-
-            // Write the new moves to the world.
-            world.write_model(@moves);
-        }
-
-
-        // Implementation of the move function for the ContractState struct.
-        fn move(ref self: ContractState, direction: Direction) {
-            // Get the address of the current caller, possibly the player's address.
-
-            let mut world = self.world_default();
-
-            let player = get_caller_address();
-
-            // Retrieve the player's current position and moves data from the world.
-            let position: Position = world.read_model(player);
-            let mut moves: Moves = world.read_model(player);
-            // if player hasn't spawn, read returns model default values. This leads to sub overflow afterwards.
-            // Plus it's generally considered as a good pratice to fast-return on matching conditions.
-            if !moves.can_move {
-                return;
-            }
-
-            // Deduct one from the player's remaining moves.
-            moves.remaining -= 1;
-
-            // Update the last direction the player moved in.
-            moves.last_direction = Option::Some(direction);
-
-            // Calculate the player's next position based on the provided direction.
-            let next = next_position(position, moves.last_direction);
-
-            // Write the new position to the world.
-            world.write_model(@next);
-
-            // Write the new moves to the world.
-            world.write_model(@moves);
-
-            // Emit an event to the world to notify about the player's move.
-            world.emit_event(@Moved { player, direction });
-        }
     }
 
     #[generate_trait]
@@ -377,18 +283,4 @@ pub mod actions {
             self.world(@"dojo_starter")
         }
     }
-}
-
-// Define function like this:
-fn next_position(mut position: Position, direction: Option<Direction>) -> Position {
-    match direction {
-        Option::None => { return position; },
-        Option::Some(d) => match d {
-            Direction::Left => { position.vec.x -= 1; },
-            Direction::Right => { position.vec.x += 1; },
-            Direction::Up => { position.vec.y -= 1; },
-            Direction::Down => { position.vec.y += 1; },
-        }
-    };
-    position
 }

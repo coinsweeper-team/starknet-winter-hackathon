@@ -1,16 +1,5 @@
 use starknet::{ContractAddress};
 
-#[derive(Copy, Drop, Serde, Debug)]
-#[dojo::model]
-pub struct Moves {
-    #[key]
-    pub player: ContractAddress,
-    pub remaining: u8,
-    pub last_direction: Option<Direction>,
-    pub can_move: bool,
-}
-
-
 // COINSWEEPER //
 
 #[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]
@@ -81,7 +70,7 @@ pub struct BoardStatus {
     is_over: bool,
     time_elapsed: u64,
     // total_currency_available: u32,
-    result: GameResult,
+    result: u8,
 }
 
 #[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]
@@ -92,22 +81,6 @@ enum GameDifficulty {
 }
 
 // COINSWEEPER //
-
-#[derive(Drop, Serde, Debug)]
-#[dojo::model]
-pub struct DirectionsAvailable {
-    #[key]
-    pub player: ContractAddress,
-    pub directions: Array<Direction>,
-}
-
-#[derive(Copy, Drop, Serde, Debug)]
-#[dojo::model]
-pub struct Position {
-    #[key]
-    pub player: ContractAddress,
-    pub vec: Vec2,
-}
 
 
 #[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]
@@ -136,8 +109,8 @@ impl GameDifficultyIntoFelt252 of Into<GameDifficulty, u8> {
     }
 }
 
-impl GameResultIntoFelt252 of Into<GameResult, felt252> {
-    fn into(self: GameResult) -> felt252 {
+impl GameResultIntoFelt252 of Into<GameResult, u8> {
+    fn into(self: GameResult) -> u8 {
         match self {
             GameResult::Ongoing => 0,
             GameResult::Lost => 1,
